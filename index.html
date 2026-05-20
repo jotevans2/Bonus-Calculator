@@ -341,8 +341,8 @@ function renderWeekly(treatHrs, util, denom, fte, ratio, loggedHrs) {
     <p class="section-label">Weekly bonus tiers</p>
     <div class="tier-list">
       <div class="tier-row"><span class="t-pct">90–96%</span><span class="t-hrs">${(0.9*denom).toFixed(1)}–${(0.96*denom).toFixed(1)} hrs</span><span class="t-bonus" style="color:#888780;">No weekly bonus</span><span class="t-gap" style="color:#888780;">—</span></div>
-      <div class="tier-row ${tier97Cls}"><span class="t-pct">97–99%</span><span class="t-hrs">${(0.97*denom).toFixed(1)}–${(0.99*denom).toFixed(1)} hrs</span><span class="t-bonus" style="font-weight:500;color:#185FA5;">${fmt$(prorata(100,fte))} / week</span><span class="t-gap" style="color:#185FA5;">${tier97Gap}</span></div>
-      <div class="tier-row ${tier100Cls}"><span class="t-pct">100%</span><span class="t-hrs">${denom.toFixed(1)} hrs</span><span class="t-bonus" style="font-weight:500;">${fmt$(prorata(200,fte))} / week</span><span class="t-gap" style="color:#888780;">${tier100Gap}</span></div>
+      <div class="tier-row ${tier97Cls}"><span class="t-pct">97–99%</span><span class="t-hrs">${(0.97*denom).toFixed(1)}–${(0.99*denom).toFixed(1)} hrs</span><span class="t-bonus" style="font-weight:500;${tier97Cls==='on'?'color:#185FA5;':'color:#888780;'}">${fmt$(prorata(100,fte))} / week</span><span class="t-gap" style="color:${tier97Cls==='on'?'#185FA5':'#888780'}">${projectedUtil>=100?'passed':tier97Gap}</span></div>
+      <div class="tier-row ${tier100Cls}"><span class="t-pct">100%</span><span class="t-hrs">${denom.toFixed(1)} hrs</span><span class="t-bonus" style="font-weight:500;">${fmt$(prorata(200,fte))} / week</span><span class="t-gap" style="color:${tier100Cls==='on'?'#0F6E56':'#888780'}">${tier100Gap}</span></div>
     </div>`;
 }
 
