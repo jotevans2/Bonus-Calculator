@@ -290,7 +290,7 @@ function renderWeekly(treatHrs, util, denom, fte, ratio, loggedHrs) {
   const projTo100 = Math.max(0, denom - projectedTreat);
 
   let projValColor = noData ? '' : projectedUtil >= 97 ? 'color:#0F6E56' : projectedUtil >= 90 ? 'color:#854F0B' : 'color:#A32D2D';
-  let projSub = noData ? 'No data logged yet' : projectedUtil >= 97 ? 'On track for weekly bonus' : projectedUtil >= 90 ? 'Below bonus threshold' : 'Well below threshold';
+  let projSub = noData ? 'No data logged yet' : projectedUtil >= 97 ? 'On track for weekly bonus' : projectedUtil >= 90 ? 'Building toward bonus' : 'Well below threshold';
   let projSubColor = noData ? '' : projectedUtil >= 97 ? 'color:#0F6E56' : projectedUtil >= 90 ? 'color:#854F0B' : 'color:#A32D2D';
 
   let calloutClass, line1, line2;
@@ -308,7 +308,7 @@ function renderWeekly(treatHrs, util, denom, fte, ratio, loggedHrs) {
     line2 = fmt$(prorata(100,fte)) + ' weekly bonus within reach — maintain your current pace';
   } else {
     const hrsPerDay = (projTo97 / daysLeft).toFixed(1);
-    calloutClass = projectedUtil >= 90 ? 'callout info' : 'callout warn';
+    calloutClass = 'callout info';
     line1 = 'Increase treating by ' + hrsPerDay + ' hrs/day on average over the next ' + daysLeft + ' days to reach 97%';
     line2 = 'Reaching 97% unlocks the ' + fmt$(prorata(100,fte)) + ' weekly bonus';
   }
@@ -369,9 +369,9 @@ function renderQuarterly(treatHrs, util, denom, fte, ratio, pto, holidays) {
   const qBonus = projectedTier ? prorata(projectedTier.q, fte) : 0;
   const aBonus = projectedTier ? prorata(projectedTier.a, fte) : 0;
 
-  let projValColor = projectedUtil >= 95 ? 'color:#0F6E56' : projectedUtil >= 90 ? 'color:#854F0B' : 'color:#A32D2D';
+  let projValColor = projectedUtil >= 95 ? 'color:#0F6E56' : projectedUtil >= 90 ? 'color:#185FA5' : 'color:#A32D2D';
   let projSub = projectedUtil >= 95 ? 'Strong quarter ahead' : projectedUtil >= 90 ? 'On track for bonus' : 'Below 90% threshold';
-  let projSubColor = projectedUtil >= 95 ? 'color:#0F6E56' : projectedUtil >= 90 ? 'color:#854F0B' : 'color:#A32D2D';
+  let projSubColor = projectedUtil >= 95 ? 'color:#0F6E56' : projectedUtil >= 90 ? 'color:#185FA5' : 'color:#A32D2D';
 
   let calloutClass, line1, line2;
   if(!nextTier || projectedUtil >= 100) {
@@ -385,7 +385,7 @@ function renderQuarterly(treatHrs, util, denom, fte, ratio, pto, holidays) {
   } else {
     const hrsNeeded = Math.max(0, (nextTier.pct/100)*totalQtrHrs - projectedTreat);
     const hrsPerDay = (hrsNeeded / (wksLeft * 5)).toFixed(1);
-    calloutClass = projectedUtil >= 90 ? 'callout info' : 'callout warn';
+    calloutClass = 'callout info';
     line1 = 'Increase treating by ' + hrsPerDay + ' hrs/day on average over the next ' + wksLeft + ' weeks to reach ' + nextTier.pct + '%';
     line2 = 'Quarterly bonus at ' + nextTier.pct + '%: ' + fmt$(prorata(nextTier.q,fte));
   }
