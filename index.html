@@ -365,7 +365,7 @@ function renderQuarterly(treatHrs, util, denom, fte, ratio, pto, holidays) {
   const projectedUtil = Math.min((projectedTreat / totalQtrHrs) * 100, 100);
   const currentUtil = denom > 0 ? Math.round((treatHrs / denom) * 100) : 0;
   const nextTier = TIERS.find(t => t.pct > Math.round(projectedUtil));
-  const projectedTier = getTier(projectedUtil);
+  const projectedTier = getTier(Math.round(projectedUtil));
   const qBonus = projectedTier ? prorata(projectedTier.q, fte) : 0;
   const aBonus = projectedTier ? prorata(projectedTier.a, fte) : 0;
 
