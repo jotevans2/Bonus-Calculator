@@ -426,8 +426,8 @@ function renderQuarterly(treatHrs, util, denom, fte, ratio, pto, holidays) {
       </div>
       <div class="met">
         <p class="met-label">Projected bonus</p>
-        <p class="met-val">${fmt$(qBonus)}</p>
-        <p class="met-sub">${fmt$(aBonus)} annually</p>
+        <p class="met-val" style="${qBonus > 0 ? 'color:#0F6E56' : ''}">${fmt$(qBonus)}</p>
+        <p class="met-sub" style="${qBonus > 0 ? 'color:#0F6E56' : ''}">${fmt$(aBonus)} annually</p>
       </div>
     </div>
     <div style="position:relative;height:7px;background:#d3d1c7;border-radius:99px;margin:0 0 4px;overflow:hidden;">
