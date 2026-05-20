@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProTailored Bonus Calculator</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4f0; min-height: 100vh; }
+.topbar { background: #fff; border-bottom: 0.5px solid #d3d1c7; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+.logo { font-size: 15px; font-weight: 500; color: #2c2c2a; }
+.logo span { color: #1D9E75; }
+.tagline { font-size: 12px; color: #888780; }
+.container { max-width: 560px; margin: 0 auto; padding: 24px 16px; }
+.card { background: #fff; border: 0.5px solid #d3d1c7; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.card-label { font-size: 11px; color: #888780; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 12px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.field label { font-size: 12px; color: #5f5e5a; display: block; margin-bottom: 4px; }
+.field select, .field input { width: 100%; height: 36px; border: 0.5px solid #b4b2a9; border-radius: 8px; padding: 0 10px; font-size: 14px; background: #fff; color: #2c2c2a; outline: none; }
+.field select:focus, .field input:focus { border-color: #1D9E75; box-shadow: 0 0 0 3px rgba(29,158,117,0.12); }
+.pto-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.load-btn { width: 100%; height: 40px; background: #1D9E75; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.load-btn:hover { background: #0F6E56; }
+.status { font-size: 12px; color: #888780; text-align: center; margin-top: 8px; min-height: 16px; }
+.tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+.tab { padding: 7px 22px; border: 0.5px solid #b4b2a9; border-radius: 8px; font-size: 13px; font-weight: 500; color: #5f5e5a; background: transparent; cursor: pointer; }
+.tab.on { background: #fff; color: #2c2c2a; border-color: #5f5e5a; }
+.metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.met { background: #f5f4f0; border-radius: 8px; padding: 10px 12px; }
+.met-label { font-size: 11px; color: #888780; margin: 0 0 3px; }
+.met-val { font-size: 20px; font-weight: 500; color: #2c2c2a; }
+.met-sub { font-size: 11px; color: #888780; margin: 2px 0 0; }
+.prog { height: 7px; background: #d3d1c7; border-radius: 99px; margin: 0 0 4px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 99px; background: #1D9E75; transition: width 0.4s; }
+.prog-labels { display: flex; justify-content: space-between; font-size: 10px; color: #888780; margin-bottom: 12px; }
+.callout { border-left: 3px solid #1D9E75; padding: 10px 14px; background: #E1F5EE; border-radius: 0; margin-bottom: 12px; }
+.callout.info { border-color: #378ADD; background: #E6F1FB; }
+.callout.warn { border-color: #BA7517; background: #FAEEDA; }
+.callout-line1 { font-size: 14px; font-weight: 500; color: #085041; margin: 0 0 4px; }
+.callout.info .callout-line1 { color: #0C447C; }
+.callout.warn .callout-line1 { color: #633806; }
+.callout-line2 { font-size: 12px; color: #0F6E56; margin: 0; }
+.callout.info .callout-line2 { color: #185FA5; }
+.callout.warn .callout-line2 { color: #854F0B; }
+.section-label { font-size: 11px; color: #888780; margin-bottom: 6px; }
+.tier-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
+.tier-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; background: #f5f4f0; font-size: 12px; color: #2c2c2a; }
+.tier-row.on { background: #E1F5EE; }
+.tier-row.nx { background: #E6F1FB; }
+.t-pct { min-width: 40px; font-weight: 500; }
+.t-hrs { min-width: 72px; color: #5f5e5a; }
+.t-bonus { min-width: 80px; }
+.t-gap { flex: 1; text-align: right; font-size: 11px; }
+.prorata-note { font-size: 11px; color: #854F0B; background: #FAEEDA; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; }
+.note { font-size: 11px; color: #888780; text-align: center; margin-top: 16px; line-height: 1.6; }
+#no-results { padding: 3rem 0; text-align: center; color: #888780; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">ProTailored <span>Bonus</span> Calculator</div>
+  <div class="tagline">Powered by MetaPulse</div>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <p class="card-label">Sign in</p>
+    <div class="field-row">
+      <div class="field">
+        <label>Your name</label>
+        <select id="therapist-select" onchange="onTherapistChange()">
+          <option value="">— choose —</option>
+          <option value="matt">Matt Paul</option>
+          <option value="kirsten">Kirsten Atchison</option>
+          <option value="chelsea">Chelsea Jones</option>
+          <option value="katlin">Katlin Couchman</option>
+          <option value="rachael">Rachael Rothgeb</option>
+          <option value="lisa">Lisa Douglas</option>
+          <option value="kelsey">Kelsey Neuman</option>
+          <option value="amanda">Amanda Robinett</option>
+          <option value="landon">Landon Pence</option>
+          <option value="caleb">Caleb Gabler</option>
+          <option value="janet">Janet Allen</option>
+          <option value="jared">Jared Kazmierczak</option>
+          <option value="brenden">Brenden Zeisloft</option>
+          <option value="rachel">Rachel Stillaway</option>
+          <option value="josephine">Josephine Rammel</option>
+          <option value="colleen">Colleen Quigley</option>
+          <option value="sam">Sam Poling</option>
+          <option value="gracie">Gracie Clickovich</option>
+          <option value="ryan">Ryan Reimschisel</option>
+          <option value="connor">Connor Cottingham</option>
+          <option value="kayla">Kayla Reimschisel</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>MetaPulse API key</label>
+        <input type="password" id="api-key-input" placeholder="Paste from your profile" oninput="saveKey()">
+      </div>
+    </div>
+    <div class="pto-row">
+      <div class="field">
+        <label>Approved PTO this quarter (hrs)</label>
+        <input type="number" id="pto-input" value="0" min="0" max="200" placeholder="0">
+      </div>
+      <div class="field">
+        <label>Company holidays this quarter (hrs)</label>
+        <input type="number" id="holiday-input" value="0" min="0" max="80" placeholder="0">
+      </div>
+    </div>
+    <button class="load-btn" onclick="loadData()">Load my data</button>
+    <p class="status" id="load-status"></p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="tabs">
+      <button class="tab on" id="tab-w" onclick="switchTab('w')">Weekly</button>
+      <button class="tab" id="tab-q" onclick="switchTab('q')">Quarterly</button>
+    </div>
+
+    <div id="panel-w"></div>
+    <div id="panel-q" style="display:none;"></div>
+  </div>
+
+  <div id="no-results">Select your name and paste your API key, then click Load.</div>
+
+  <p class="note">Your API key is saved only in this browser and never sent anywhere except MetaPulse.<br>Data pulls live from MetaPulse each time you click Load.</p>
+</div>
+
+<script>
+const ROSTER = {
+  matt:      { fte:40, util:'gra3aukkmy7', hrs:'graf7kzbf61',  treat:'grag19zth7o',  email:'matt@protailored.com' },
+  kirsten:   { fte:37, util:'graq5qpqhvv', hrs:'grawms7zufi',  treat:'grat5tdk224',  email:'kirsten@protailored.com' },
+  chelsea:   { fte:40, util:'grabh1dn286', hrs:'grax76989ww',  treat:'grakft8puvo',  email:'chelsea@protailored.com' },
+  katlin:    { fte:20, util:'grapnqvzqlr', hrs:'grauw4jbzs2',  treat:'grayv39xl1v',  email:'katlin@protailored.com' },
+  rachael:   { fte:29, util:'graxy5i5aob', hrs:'gra8c099y3n',  treat:'grazs1vkwsy',  email:'rachael@protailored.com' },
+  lisa:      { fte:40, util:'gra9bwi1j98', hrs:'gravbevarz5',  treat:'gra8zzde631',  email:'lisa@protailored.com' },
+  kelsey:    { fte:40, util:'graq8hcm6t0', hrs:'grazt3ne9dm',  treat:'grakouc76vn',  email:'kelsey@protailored.com' },
+  amanda:    { fte:32, util:'grazgx36xe4', hrs:'graao4c8ihz',  treat:'graq17ymihj',  email:'amanda@protailored.com' },
+  landon:    { fte:37, util:'gravn14qazo', hrs:'gra5746fumg',  treat:'graeb82cay7',  email:'landon@protailored.com' },
+  caleb:     { fte:37, util:'gra5hgh0xjs', hrs:'gra5rif4c8e',  treat:'gracfqbcqhp',  email:'caleb@protailored.com' },
+  janet:     { fte:40, util:'grazbfybxfs', hrs:'gra5hegifol',  treat:'gravx89vubk',  email:'janet@protailored.com' },
+  jared:     { fte:40, util:'graayfbrwl5', hrs:'grapk8ttenj',  treat:'gra4ads7ts6',  email:'jared@protailored.com' },
+  brenden:   { fte:40, util:'gra7or6q8fv', hrs:'gradtymcf4y',  treat:'gra6z3z9msl',  email:'brenden@protailored.com' },
+  rachel:    { fte:29, util:'gradbcuj56m', hrs:'gratmveegg2',  treat:'gra3j7vmj1a',  email:'rachel@protailored.com' },
+  josephine: { fte:40, util:'grad77a29h8', hrs:'grafzlckubt',  treat:'gratwmeyauh',  email:'josephine@protailored.com' },
+  colleen:   { fte:40, util:'grangoewjyw', hrs:'graep799ce3',  treat:'graqhki6mt2',  email:'colleen@protailored.com' },
+  sam:       { fte:40, util:'graa993j785', hrs:'gras2lw1tnz',  treat:'gracgkth4hs',  email:'sam@protailored.com' },
+  gracie:    { fte:40, util:'grazrktowa8', hrs:'graj7ijel11',  treat:'grarayrzmak',  email:'gracie@protailored.com' },
+  ryan:      { fte:40, util:'grac79jjyf4', hrs:'gra366g7qro',  treat:'grakckhnlwr',  email:'ryan@protailored.com' },
+  connor:    { fte:40, util:'gra5vuil0gv', hrs:'graw5rtdkvi',  treat:'grahr9ddnzt',  email:'connor@protailored.com' },
+  kayla:     { fte:40, util:'grasnp65e0a', hrs:'grad08gnq5y',  treat:'gra72br2enj',  email:'kayla@protailored.com' },
+};
+
+const TIERS = [
+  {pct:90,q:500,a:2000},{pct:91,q:625,a:2500},{pct:92,q:812,a:3250},
+  {pct:93,q:1000,a:4000},{pct:94,q:1250,a:5000},{pct:95,q:1500,a:6000},
+  {pct:96,q:1813,a:7250},{pct:97,q:2125,a:8500},{pct:98,q:2500,a:10000},
+  {pct:99,q:2938,a:11750},{pct:100,q:3500,a:14000}
+];
+
+function prorata(amount, fte) { return Math.round(amount * (fte / 40)); }
+function fmt$(n) { return '$' + n.toLocaleString('en-US'); }
+function getTier(u) { for(let i=TIERS.length-1;i>=0;i--) if(Math.floor(u)>=TIERS[i].pct) return TIERS[i]; return null; }
+function fmtDate(d) { return d.toISOString().split('T')[0]; }
+
+function getWeekRange() {
+  const now = new Date();
+  const day = now.getDay();
+  const mon = new Date(now); mon.setDate(now.getDate()-(day===0?6:day-1));
+  const sun = new Date(mon); sun.setDate(mon.getDate()+6);
+  return { start: fmtDate(mon), end: fmtDate(sun) };
+}
+
+function getQuarterRange() {
+  const now = new Date();
+  const q = Math.floor(now.getMonth()/3);
+  const start = new Date(now.getFullYear(), q*3, 1);
+  const end = new Date(now.getFullYear(), q*3+3, 0);
+  return { start: fmtDate(start), end: fmtDate(end), endDate: end };
+}
+
+function weeksRemaining() {
+  const now = new Date();
+  const q = Math.floor(now.getMonth()/3);
+  const qEnd = new Date(now.getFullYear(), q*3+3, 0);
+  return Math.max(1, Math.ceil((qEnd - now) / (1000*60*60*24*7)));
+}
+
+function quarterWorkdaysSoFar() {
+  const now = new Date();
+  const q = Math.floor(now.getMonth()/3);
+  const qStart = new Date(now.getFullYear(), q*3, 1);
+  let days = 0, d = new Date(qStart);
+  while(d <= now) { const wd = d.getDay(); if(wd>=1&&wd<=5) days++; d.setDate(d.getDate()+1); }
+  return days;
+}
+
+async function fetchPoints(token, email, key, start, end) {
+  const url = `https://metapulse.com/api/v4/data_points?graph_id=${token}&starts_on_or_after=${start}&ends_on_or_before=${end}&per_page=500`;
+  const res = await fetch(url, { headers: { 'api-email': email, 'api-key': key, 'Accept': 'application/json' }});
+  if(!res.ok) throw new Error('API error ' + res.status);
+  return res.json();
+}
+
+function sumPoints(pts) { return pts.reduce((s,p) => s + parseFloat(p.value||0), 0); }
+
+function saveKey() {
+  const t = document.getElementById('therapist-select').value;
+  const k = document.getElementById('api-key-input').value;
+  if(t) localStorage.setItem('mp_key_'+t, k);
+}
+
+function onTherapistChange() {
+  const t = document.getElementById('therapist-select').value;
+  if(!t) return;
+  const saved = localStorage.getItem('mp_key_'+t);
+  if(saved) document.getElementById('api-key-input').value = saved;
+}
+
+async function loadData() {
+  const who = document.getElementById('therapist-select').value;
+  const key = document.getElementById('api-key-input').value.trim();
+  const pto = parseFloat(document.getElementById('pto-input').value)||0;
+  const holidays = parseFloat(document.getElementById('holiday-input').value)||0;
+  const status = document.getElementById('load-status');
+
+  if(!who || !key) { status.textContent = 'Please select your name and enter your API key.'; return; }
+
+  const person = ROSTER[who];
+  status.textContent = 'Loading your data...';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('no-results').style.display = 'none';
+
+  try {
+    const wRange = getWeekRange();
+    const qRange = getQuarterRange();
+
+    const [wTreatPts, qTreatPts, wHrsPts, qHrsPts] = await Promise.all([
+      fetchPoints(person.treat, person.email, key, wRange.start, wRange.end),
+      fetchPoints(person.treat, person.email, key, qRange.start, qRange.end),
+      fetchPoints(person.hrs,   person.email, key, wRange.start, wRange.end),
+      fetchPoints(person.hrs,   person.email, key, qRange.start, qRange.end),
+    ]);
+
+    const wTreatHrs = sumPoints(wTreatPts);
+    const qTreatHrs = sumPoints(qTreatPts);
+
+    const fte = person.fte;
+    const ratio = fte / 40;
+
+    // Weekly: cap denominator at FTE
+    const wDenom = fte;
+    const wUtil = Math.min((wTreatHrs / wDenom) * 100, 100);
+
+    // Quarterly: workdays so far × daily FTE hrs, minus PTO and holidays, capped
+    const workdaysSoFar = quarterWorkdaysSoFar();
+    const qFTEsoFar = workdaysSoFar * (fte / 5);
+    const qDenom = Math.max(qFTEsoFar - pto - holidays, 1);
+    const qUtil = Math.min((qTreatHrs / qDenom) * 100, 100);
+
+    renderWeekly(wTreatHrs, wUtil, wDenom, fte, ratio);
+    renderQuarterly(qTreatHrs, qUtil, qDenom, fte, ratio, pto, holidays);
+
+    status.textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    document.getElementById('results').style.display = '';
+    saveKey();
+  } catch(e) {
+    status.textContent = 'Could not load — check your API key and try again.';
+    document.getElementById('no-results').style.display = '';
+    document.getElementById('no-results').textContent = 'Error: ' + e.message;
+  }
+}
+
+function renderWeekly(treatHrs, util, denom, fte, ratio) {
+  const tier = getTier(util);
+  const wkBonus = util >= 100 ? prorata(200,fte) : util >= 97 ? prorata(100,fte) : 0;
+  const nextWkTier = util < 97 ? 97 : util < 100 ? 100 : null;
+  const hrsTo97 = Math.max(0, (97/100)*denom - treatHrs);
+  const hrsTo100 = Math.max(0, denom - treatHrs);
+
+  let calloutClass = 'callout info';
+  let line1 = '', line2 = '';
+
+  if(util >= 100) {
+    calloutClass = 'callout';
+    line1 = 'Maximum reached — 100% utilization this week';
+    line2 = 'Weekly bonus: ' + fmt$(prorata(200,fte));
+  } else if(util >= 97) {
+    calloutClass = 'callout';
+    line1 = hrsTo100.toFixed(1) + ' more hours this week to reach 100%';
+    line2 = '100% unlocks the ' + fmt$(prorata(200,fte)) + ' weekly bonus';
+  } else {
+    line1 = hrsTo97.toFixed(1) + ' more hours this week to reach 97%';
+    line2 = '97% unlocks the ' + fmt$(prorata(100,fte)) + ' weekly bonus';
+  }
+
+  const prorataNote = fte < 40 ? `<p class="prorata-note">Bonuses prorated at ${Math.round(ratio*100)}% based on your ${fte}-hour contracted week.</p>` : '';
+
+  const tierRows = [
+    { label:'90–96%', hrs:`${(0.9*denom).toFixed(1)}–${(0.96*denom).toFixed(1)} hrs`, bonus:'No weekly bonus', gap:'—', cls:'', gapColor:'#888780' },
+    { label:'97–99%', hrs:`${(0.97*denom).toFixed(1)}–${(0.99*denom).toFixed(1)} hrs`, bonus: fmt$(prorata(100,fte))+' / week', gap: util>=97&&util<100 ? 'current' : '+'+hrsTo97.toFixed(1)+' hrs', cls: util>=97&&util<100?'on':util<97?'nx':'', gapColor: util>=97&&util<100?'#0F6E56':'#185FA5' },
+    { label:'100%', hrs:`${denom.toFixed(1)} hrs`, bonus: fmt$(prorata(200,fte))+' / week', gap: util>=100?'current':'+'+hrsTo100.toFixed(1)+' hrs', cls: util>=100?'on':'', gapColor: util>=100?'#0F6E56':'#888780' }
+  ];
+
+  document.getElementById('panel-w').innerHTML = `
+    <div class="metrics">
+      <div class="met"><p class="met-label">Hours treating</p><p class="met-val">${treatHrs.toFixed(1)} hrs</p><p class="met-sub">this week</p></div>
+      <div class="met"><p class="met-label">Utilization rate</p><p class="met-val">${util.toFixed(1)}%</p><p class="met-sub">of ${denom} hr week</p></div>
+      <div class="met"><p class="met-label">Weekly bonus</p><p class="met-val">${fmt$(wkBonus)}</p><p class="met-sub">${wkBonus>0?'Earned this week':'Need 97%+ to unlock'}</p></div>
+    </div>
+    <div class="prog"><div class="prog-fill" style="width:${Math.min(util,100).toFixed(1)}%"></div></div>
+    <div class="prog-labels"><span>0</span><span>90% = ${(0.9*denom).toFixed(1)} hrs</span><span>97% = ${(0.97*denom).toFixed(1)} hrs</span><span>${denom} hrs</span></div>
+    <div class="${calloutClass}"><p class="callout-line1">${line1}</p><p class="callout-line2">${line2}</p></div>
+    ${prorataNote}
+    <p class="section-label">Weekly bonus tiers</p>
+    <div class="tier-list">
+      ${tierRows.map(r=>`<div class="tier-row ${r.cls}"><span class="t-pct">${r.label}</span><span class="t-hrs">${r.hrs}</span><span class="t-bonus" style="${r.cls===''&&r.label==='90–96%'?'color:#888780':'font-weight:500'}">${r.bonus}</span><span class="t-gap" style="color:${r.gapColor}">${r.gap}</span></div>`).join('')}
+    </div>`;
+}
+
+function renderQuarterly(treatHrs, util, denom, fte, ratio, pto, holidays) {
+  const tier = getTier(util);
+  const wksLeft = weeksRemaining();
+  const nextTier = TIERS.find(t => t.pct > Math.floor(util));
+  const qBonus = tier ? prorata(tier.q, fte) : 0;
+  const aBonus = tier ? prorata(tier.a, fte) : 0;
+
+  let calloutClass = 'callout info';
+  let line1 = '', line2 = '';
+
+  if(!nextTier) {
+    calloutClass = 'callout';
+    line1 = 'Maximum reached — 100% utilization this quarter';
+    line2 = 'Quarterly bonus: ' + fmt$(prorata(3500,fte));
+  } else {
+    const hrsNeeded = Math.max(0, (nextTier.pct/100)*denom - treatHrs);
+    const extraPerWk = (hrsNeeded / wksLeft).toFixed(1);
+    calloutClass = hrsNeeded <= fte ? 'callout' : 'callout info';
+    line1 = `Increase treating by ${extraPerWk} hrs/week over the next ${wksLeft} weeks to reach ${nextTier.pct}%`;
+    line2 = `Quarterly bonus at ${nextTier.pct}%: ${fmt$(prorata(nextTier.q,fte))}`;
+  }
+
+  const prorataNote = fte < 40 ? `<p class="prorata-note">Bonuses prorated at ${Math.round(ratio*100)}% based on your ${fte}-hour contracted week.</p>` : '';
+  const ptoNote = (pto+holidays) > 0 ? `<p class="prorata-note">Denominator adjusted: ${pto} PTO hrs + ${holidays} holiday hrs removed from contracted hours.</p>` : '';
+
+  const tierRows = TIERS.map(t => {
+    const hrsNeeded = Math.ceil((t.pct/100)*denom);
+    const isCurrent = tier && t.pct === tier.pct;
+    const isNext = nextTier && t.pct === nextTier.pct;
+    const gap = hrsNeeded - treatHrs;
+    const extraPw = gap > 0 ? (gap/wksLeft).toFixed(1)+' hrs/wk' : 'passed';
+    const gapColor = isCurrent ? '#0F6E56' : isNext ? '#185FA5' : gap<=0 ? '#888780' : '#888780';
+    const gapText = isCurrent ? 'current' : extraPw;
+    return `<div class="tier-row ${isCurrent?'on':isNext?'nx':''}">
+      <span class="t-pct">${t.pct}%</span>
+      <span class="t-hrs">${hrsNeeded} hrs</span>
+      <span class="t-bonus">${fmt$(prorata(t.q,fte))}/qtr</span>
+      <span class="t-gap" style="color:${gapColor};${isCurrent?'font-weight:500':''}">${gapText}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('panel-q').innerHTML = `
+    <div class="metrics">
+      <div class="met"><p class="met-label">Hours treating</p><p class="met-val">${treatHrs.toFixed(1)} hrs</p><p class="met-sub">this quarter</p></div>
+      <div class="met"><p class="met-label">Utilization rate</p><p class="met-val">${util.toFixed(1)}%</p><p class="met-sub">of ~${Math.round(denom)} hrs so far</p></div>
+      <div class="met"><p class="met-label">Quarterly bonus</p><p class="met-val">${fmt$(qBonus)}</p><p class="met-sub">${fmt$(aBonus)} if sustained</p></div>
+    </div>
+    <div class="prog"><div class="prog-fill" style="width:${Math.min(util,100).toFixed(1)}%"></div></div>
+    <div class="prog-labels"><span>0</span><span>90%</span><span>95%</span><span>100%</span></div>
+    <div class="${calloutClass}"><p class="callout-line1">${line1}</p><p class="callout-line2">${line2}</p></div>
+    ${prorataNote}${ptoNote}
+    <p class="section-label">All tiers this quarter</p>
+    <div class="tier-list">${tierRows}</div>`;
+}
+
+function switchTab(t) {
+  document.getElementById('panel-w').style.display = t==='w'?'':'none';
+  document.getElementById('panel-q').style.display = t==='q'?'':'none';
+  document.getElementById('tab-w').className = 'tab'+(t==='w'?' on':'');
+  document.getElementById('tab-q').className = 'tab'+(t==='q'?' on':'');
+}
+
+onTherapistChange();
+</script>
+</body>
+</html>
