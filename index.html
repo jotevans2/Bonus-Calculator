@@ -318,13 +318,14 @@ function renderWeekly(treatHrs, util, denom, fte, ratio, loggedHrs) {
   const progProj = noData ? 0 : Math.min(projectedUtil, 100).toFixed(1);
   const tier97Gap = noData ? '—' : projTo97 > 0 ? '+'+projTo97.toFixed(1)+' proj hrs' : 'on track';
   const tier100Gap = noData ? '—' : projTo100 > 0 ? '+'+projTo100.toFixed(1)+' proj hrs' : 'on track';
-  const tier97Cls = !noData && projTo97 > 0 ? 'nx' : '';
+  const tier97Cls = !noData && projectedUtil >= 97 && projectedUtil < 100 ? 'on' : !noData && projTo97 > 0 ? 'nx' : '';
+  const tier100Cls = !noData && projectedUtil >= 100 ? 'on' : !noData && projTo97 <= 0 && projTo100 > 0 ? 'nx' : '';
 
   document.getElementById('panel-w').innerHTML = `
     <div class="metrics">
       <div class="met"><p class="met-label">Hours treating</p><p class="met-val">${noData ? '—' : treatHrs.toFixed(1)+' hrs'}</p><p class="met-sub">${noData ? 'this week so far' : 'of '+loggedHrs.toFixed(1)+' hrs so far'}</p></div>
       <div class="met"><p class="met-label">Projected end of week</p><p class="met-val" style="${projValColor}">${noData ? '—' : projectedUtil.toFixed(0)+'%'}</p><p class="met-sub" style="${projSubColor}">${projSub}</p></div>
-      <div class="met"><p class="met-label">Projected weekly bonus</p><p class="met-val" style="${projectedUtil>=97?'color:#0F6E56':projectedUtil>=90?'color:#185FA5':''}">${noData?'—':fmt$(prorata(100,fte))}</p><p class="met-sub" style="${projectedUtil>=97?'color:#0F6E56':projectedUtil>=90?'color:#185FA5':''}">${noData?'No data yet':projectedUtil>=97?'On pace to earn':'Increase pace to unlock'}</p></div>
+      <div class="met"><p class="met-label">Projected weekly bonus</p><p class="met-val" style="${projectedUtil>=97?'color:#0F6E56':projectedUtil>=90?'color:#185FA5':''}">${noData?'—':projectedUtil>=100?fmt$(prorata(200,fte)):projectedUtil>=97?fmt$(prorata(100,fte)):fmt$(0)}</p><p class="met-sub" style="${projectedUtil>=97?'color:#0F6E56':projectedUtil>=90?'color:#185FA5':''}">${noData?'No data yet':projectedUtil>=97?'On pace to earn':'Increase pace to unlock'}</p></div>
     </div>
     <div style="position:relative;height:7px;background:#d3d1c7;border-radius:99px;margin:0 0 4px;overflow:hidden;">
       <div style="position:absolute;top:0;left:0;height:100%;border-radius:99px;background:#9FE1CB;width:${progProj}%"></div>
@@ -341,7 +342,7 @@ function renderWeekly(treatHrs, util, denom, fte, ratio, loggedHrs) {
     <div class="tier-list">
       <div class="tier-row"><span class="t-pct">90–96%</span><span class="t-hrs">${(0.9*denom).toFixed(1)}–${(0.96*denom).toFixed(1)} hrs</span><span class="t-bonus" style="color:#888780;">No weekly bonus</span><span class="t-gap" style="color:#888780;">—</span></div>
       <div class="tier-row ${tier97Cls}"><span class="t-pct">97–99%</span><span class="t-hrs">${(0.97*denom).toFixed(1)}–${(0.99*denom).toFixed(1)} hrs</span><span class="t-bonus" style="font-weight:500;color:#185FA5;">${fmt$(prorata(100,fte))} / week</span><span class="t-gap" style="color:#185FA5;">${tier97Gap}</span></div>
-      <div class="tier-row"><span class="t-pct">100%</span><span class="t-hrs">${denom.toFixed(1)} hrs</span><span class="t-bonus" style="font-weight:500;">${fmt$(prorata(200,fte))} / week</span><span class="t-gap" style="color:#888780;">${tier100Gap}</span></div>
+      <div class="tier-row ${tier100Cls}"><span class="t-pct">100%</span><span class="t-hrs">${denom.toFixed(1)} hrs</span><span class="t-bonus" style="font-weight:500;">${fmt$(prorata(200,fte))} / week</span><span class="t-gap" style="color:#888780;">${tier100Gap}</span></div>
     </div>`;
 }
 
