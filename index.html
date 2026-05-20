@@ -261,7 +261,7 @@ async function loadData() {
     const qDenom = Math.max(qFTEsoFar - pto - holidays, 1);
     const qUtil = Math.min((qTreatHrs / qDenom) * 100, 100);
 
-    renderWeekly(wTreatHrs, wUtil, wDenom, fte, ratio);
+    renderWeekly(wTreatHrs, wUtil, wDenom, fte, ratio, sumPoints(wHrsPts));
     renderQuarterly(qTreatHrs, qUtil, qDenom, fte, ratio, pto, holidays);
 
     status.textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
@@ -274,52 +274,77 @@ async function loadData() {
   }
 }
 
-function renderWeekly(treatHrs, util, denom, fte, ratio) {
-  const tier = getTier(util);
+function renderWeekly(treatHrs, util, denom, fte, ratio, loggedHrs) {
   const wkBonus = util >= 100 ? prorata(200,fte) : util >= 97 ? prorata(100,fte) : 0;
-  const nextWkTier = util < 97 ? 97 : util < 100 ? 100 : null;
-  const hrsTo97 = Math.max(0, (97/100)*denom - treatHrs);
-  const hrsTo100 = Math.max(0, denom - treatHrs);
+  const noData = !loggedHrs || loggedHrs === 0;
+  const pace = loggedHrs > 0 ? treatHrs / loggedHrs : 0;
+  const remainingFTE = Math.max(denom - loggedHrs, 0);
+  const projectedTreat = loggedHrs > 0 ? treatHrs + pace * remainingFTE : 0;
+  const projectedUtil = loggedHrs > 0 ? Math.min((projectedTreat / denom) * 100, 100) : 0;
 
-  let calloutClass = 'callout info';
-  let line1 = '', line2 = '';
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const daysLeft = Math.max(1, dayOfWeek === 0 ? 1 : 6 - dayOfWeek);
 
-  if(util >= 100) {
+  const projTo97 = Math.max(0, (0.97*denom) - projectedTreat);
+  const projTo100 = Math.max(0, denom - projectedTreat);
+
+  let projValColor = noData ? '' : projectedUtil >= 97 ? 'color:#0F6E56' : projectedUtil >= 90 ? 'color:#854F0B' : 'color:#A32D2D';
+  let projSub = noData ? 'No data logged yet' : projectedUtil >= 97 ? 'On track for weekly bonus' : projectedUtil >= 90 ? 'Below bonus threshold' : 'Well below threshold';
+  let projSubColor = noData ? '' : projectedUtil >= 97 ? 'color:#0F6E56' : projectedUtil >= 90 ? 'color:#854F0B' : 'color:#A32D2D';
+
+  let calloutClass, line1, line2;
+  if(noData) {
     calloutClass = 'callout';
-    line1 = 'Maximum reached — 100% utilization this week';
-    line2 = 'Weekly bonus: ' + fmt$(prorata(200,fte));
-  } else if(util >= 97) {
+    line1 = 'No data logged yet this week';
+    line2 = 'Check back after your first day is logged in MetaPulse';
+  } else if(projectedUtil >= 100) {
     calloutClass = 'callout';
-    line1 = hrsTo100.toFixed(1) + ' more hours this week to reach 100%';
-    line2 = '100% unlocks the ' + fmt$(prorata(200,fte)) + ' weekly bonus';
+    line1 = 'On pace for 100% by end of week';
+    line2 = 'Weekly bonus: ' + fmt$(prorata(200,fte)) + ' — keep up the pace';
+  } else if(projectedUtil >= 97) {
+    calloutClass = 'callout';
+    line1 = 'On pace for ' + projectedUtil.toFixed(0) + '% by end of week';
+    line2 = fmt$(prorata(100,fte)) + ' weekly bonus within reach — maintain your current pace';
   } else {
-    line1 = hrsTo97.toFixed(1) + ' more hours this week to reach 97%';
-    line2 = '97% unlocks the ' + fmt$(prorata(100,fte)) + ' weekly bonus';
+    const hrsPerDay = (projTo97 / daysLeft).toFixed(1);
+    calloutClass = projectedUtil >= 90 ? 'callout info' : 'callout warn';
+    line1 = 'Increase treating by ' + hrsPerDay + ' hrs/day on average over the next ' + daysLeft + ' days to reach 97%';
+    line2 = 'Reaching 97% unlocks the ' + fmt$(prorata(100,fte)) + ' weekly bonus';
   }
 
   const prorataNote = fte < 40 ? `<p class="prorata-note">Bonuses prorated at ${Math.round(ratio*100)}% based on your ${fte}-hour contracted week.</p>` : '';
-
-  const tierRows = [
-    { label:'90–96%', hrs:`${(0.9*denom).toFixed(1)}–${(0.96*denom).toFixed(1)} hrs`, bonus:'No weekly bonus', gap:'—', cls:'', gapColor:'#888780' },
-    { label:'97–99%', hrs:`${(0.97*denom).toFixed(1)}–${(0.99*denom).toFixed(1)} hrs`, bonus: fmt$(prorata(100,fte))+' / week', gap: util>=97&&util<100 ? 'current' : '+'+hrsTo97.toFixed(1)+' hrs', cls: util>=97&&util<100?'on':util<97?'nx':'', gapColor: util>=97&&util<100?'#0F6E56':'#185FA5' },
-    { label:'100%', hrs:`${denom.toFixed(1)} hrs`, bonus: fmt$(prorata(200,fte))+' / week', gap: util>=100?'current':'+'+hrsTo100.toFixed(1)+' hrs', cls: util>=100?'on':'', gapColor: util>=100?'#0F6E56':'#888780' }
-  ];
+  const progActual = noData ? 0 : Math.min((treatHrs/denom)*100, 100).toFixed(1);
+  const progProj = noData ? 0 : Math.min(projectedUtil, 100).toFixed(1);
+  const tier97Gap = noData ? '—' : projTo97 > 0 ? '+'+projTo97.toFixed(1)+' proj hrs' : 'on track';
+  const tier100Gap = noData ? '—' : projTo100 > 0 ? '+'+projTo100.toFixed(1)+' proj hrs' : 'on track';
+  const tier97Cls = !noData && projTo97 > 0 ? 'nx' : '';
 
   document.getElementById('panel-w').innerHTML = `
     <div class="metrics">
-      <div class="met"><p class="met-label">Hours treating</p><p class="met-val">${treatHrs.toFixed(1)} hrs</p><p class="met-sub">this week</p></div>
-      <div class="met"><p class="met-label">Utilization rate</p><p class="met-val">${util.toFixed(1)}%</p><p class="met-sub">of ${denom} hr week</p></div>
+      <div class="met"><p class="met-label">Hours treating</p><p class="met-val">${noData ? '—' : treatHrs.toFixed(1)+' hrs'}</p><p class="met-sub">this week so far</p></div>
+      <div class="met"><p class="met-label">Projected end of week</p><p class="met-val" style="${projValColor}">${noData ? '—' : projectedUtil.toFixed(0)+'%'}</p><p class="met-sub" style="${projSubColor}">${projSub}</p></div>
       <div class="met"><p class="met-label">Weekly bonus</p><p class="met-val">${fmt$(wkBonus)}</p><p class="met-sub">${wkBonus>0?'Earned this week':'Need 97%+ to unlock'}</p></div>
     </div>
-    <div class="prog"><div class="prog-fill" style="width:${Math.min(util,100).toFixed(1)}%"></div></div>
+    <div style="position:relative;height:7px;background:#d3d1c7;border-radius:99px;margin:0 0 4px;overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;height:100%;border-radius:99px;background:#9FE1CB;width:${progProj}%"></div>
+      <div style="position:absolute;top:0;left:0;height:100%;border-radius:99px;background:#1D9E75;width:${progActual}%"></div>
+    </div>
     <div class="prog-labels"><span>0</span><span>90% = ${(0.9*denom).toFixed(1)} hrs</span><span>97% = ${(0.97*denom).toFixed(1)} hrs</span><span>${denom} hrs</span></div>
+    <div style="display:flex;gap:14px;font-size:11px;color:#888780;margin-bottom:12px;align-items:center;">
+      <span><span style="display:inline-block;width:10px;height:7px;border-radius:3px;background:#1D9E75;margin-right:3px;vertical-align:middle;"></span>Treating so far</span>
+      <span><span style="display:inline-block;width:10px;height:7px;border-radius:3px;background:#9FE1CB;margin-right:3px;vertical-align:middle;"></span>Projected by Friday</span>
+    </div>
     <div class="${calloutClass}"><p class="callout-line1">${line1}</p><p class="callout-line2">${line2}</p></div>
     ${prorataNote}
     <p class="section-label">Weekly bonus tiers</p>
     <div class="tier-list">
-      ${tierRows.map(r=>`<div class="tier-row ${r.cls}"><span class="t-pct">${r.label}</span><span class="t-hrs">${r.hrs}</span><span class="t-bonus" style="${r.cls===''&&r.label==='90–96%'?'color:#888780':'font-weight:500'}">${r.bonus}</span><span class="t-gap" style="color:${r.gapColor}">${r.gap}</span></div>`).join('')}
+      <div class="tier-row"><span class="t-pct">90–96%</span><span class="t-hrs">${(0.9*denom).toFixed(1)}–${(0.96*denom).toFixed(1)} hrs</span><span class="t-bonus" style="color:#888780;">No weekly bonus</span><span class="t-gap" style="color:#888780;">—</span></div>
+      <div class="tier-row ${tier97Cls}"><span class="t-pct">97–99%</span><span class="t-hrs">${(0.97*denom).toFixed(1)}–${(0.99*denom).toFixed(1)} hrs</span><span class="t-bonus" style="font-weight:500;color:#185FA5;">${fmt$(prorata(100,fte))} / week</span><span class="t-gap" style="color:#185FA5;">${tier97Gap}</span></div>
+      <div class="tier-row"><span class="t-pct">100%</span><span class="t-hrs">${denom.toFixed(1)} hrs</span><span class="t-bonus" style="font-weight:500;">${fmt$(prorata(200,fte))} / week</span><span class="t-gap" style="color:#888780;">${tier100Gap}</span></div>
     </div>`;
 }
+
 
 function renderQuarterly(treatHrs, util, denom, fte, ratio, pto, holidays) {
   const tier = getTier(util);
@@ -365,7 +390,7 @@ function renderQuarterly(treatHrs, util, denom, fte, ratio, pto, holidays) {
   document.getElementById('panel-q').innerHTML = `
     <div class="metrics">
       <div class="met"><p class="met-label">Hours treating</p><p class="met-val">${treatHrs.toFixed(1)} hrs</p><p class="met-sub">this quarter</p></div>
-      <div class="met"><p class="met-label">Utilization rate</p><p class="met-val">${util.toFixed(1)}%</p><p class="met-sub">of ~${Math.round(denom)} hrs so far</p></div>
+      <div class="met"><p class="met-label">Utilization rate</p><p class="met-val">${Math.round(util)}%</p><p class="met-sub">of ~${Math.round(denom)} hrs so far</p></div>
       <div class="met"><p class="met-label">Quarterly bonus</p><p class="met-val">${fmt$(qBonus)}</p><p class="met-sub">${fmt$(aBonus)} if sustained</p></div>
     </div>
     <div class="prog"><div class="prog-fill" style="width:${Math.min(util,100).toFixed(1)}%"></div></div>
