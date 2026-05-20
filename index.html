@@ -347,38 +347,63 @@ function renderWeekly(treatHrs, util, denom, fte, ratio, loggedHrs) {
 
 
 function renderQuarterly(treatHrs, util, denom, fte, ratio, pto, holidays) {
-  const tier = getTier(util);
   const wksLeft = weeksRemaining();
-  const nextTier = TIERS.find(t => t.pct > Math.floor(util));
-  const qBonus = tier ? prorata(tier.q, fte) : 0;
-  const aBonus = tier ? prorata(tier.a, fte) : 0;
+  const qFTEtotal = (() => {
+    const now = new Date();
+    const q = Math.floor(now.getMonth()/3);
+    const qStart = new Date(now.getFullYear(), q*3, 1);
+    const qEnd = new Date(now.getFullYear(), q*3+3, 0);
+    let days = 0, d = new Date(qStart);
+    while(d <= qEnd) { const wd = d.getDay(); if(wd>=1&&wd<=5) days++; d.setDate(d.getDate()+1); }
+    return days * (fte/5);
+  })();
+  const totalQtrHrs = Math.max(qFTEtotal - pto - holidays, 1);
 
-  let calloutClass = 'callout info';
-  let line1 = '', line2 = '';
+  const pace = denom > 0 ? treatHrs / denom : 0;
+  const remainingQtrHrs = Math.max(totalQtrHrs - denom, 0);
+  const projectedTreat = treatHrs + pace * remainingQtrHrs;
+  const projectedUtil = Math.min((projectedTreat / totalQtrHrs) * 100, 100);
+  const currentUtil = denom > 0 ? Math.round((treatHrs / denom) * 100) : 0;
+  const nextTier = TIERS.find(t => t.pct > Math.round(projectedUtil));
+  const projectedTier = getTier(projectedUtil);
+  const qBonus = projectedTier ? prorata(projectedTier.q, fte) : 0;
+  const aBonus = projectedTier ? prorata(projectedTier.a, fte) : 0;
 
-  if(!nextTier) {
+  let projValColor = projectedUtil >= 95 ? 'color:#0F6E56' : projectedUtil >= 90 ? 'color:#854F0B' : 'color:#A32D2D';
+  let projSub = projectedUtil >= 95 ? 'Strong quarter ahead' : projectedUtil >= 90 ? 'On track for bonus' : 'Below 90% threshold';
+  let projSubColor = projectedUtil >= 95 ? 'color:#0F6E56' : projectedUtil >= 90 ? 'color:#854F0B' : 'color:#A32D2D';
+
+  let calloutClass, line1, line2;
+  if(!nextTier || projectedUtil >= 100) {
     calloutClass = 'callout';
-    line1 = 'Maximum reached — 100% utilization this quarter';
-    line2 = 'Quarterly bonus: ' + fmt$(prorata(3500,fte));
+    line1 = 'On pace for 100% by end of quarter';
+    line2 = 'Quarterly bonus: ' + fmt$(prorata(3500,fte)) + ' — maintain your pace';
+  } else if(projectedUtil >= 97) {
+    calloutClass = 'callout';
+    line1 = 'On pace for ' + projectedUtil.toFixed(0) + '% by end of quarter';
+    line2 = 'Projected quarterly bonus: ' + fmt$(qBonus);
   } else {
-    const hrsNeeded = Math.max(0, (nextTier.pct/100)*denom - treatHrs);
-    const extraPerWk = (hrsNeeded / wksLeft).toFixed(1);
-    calloutClass = hrsNeeded <= fte ? 'callout' : 'callout info';
-    line1 = `Increase treating by ${extraPerWk} hrs/week over the next ${wksLeft} weeks to reach ${nextTier.pct}%`;
-    line2 = `Quarterly bonus at ${nextTier.pct}%: ${fmt$(prorata(nextTier.q,fte))}`;
+    const hrsNeeded = Math.max(0, (nextTier.pct/100)*totalQtrHrs - projectedTreat);
+    const hrsPerDay = (hrsNeeded / (wksLeft * 5)).toFixed(1);
+    calloutClass = projectedUtil >= 90 ? 'callout info' : 'callout warn';
+    line1 = 'Increase treating by ' + hrsPerDay + ' hrs/day on average over the next ' + wksLeft + ' weeks to reach ' + nextTier.pct + '%';
+    line2 = 'Quarterly bonus at ' + nextTier.pct + '%: ' + fmt$(prorata(nextTier.q,fte));
   }
 
   const prorataNote = fte < 40 ? `<p class="prorata-note">Bonuses prorated at ${Math.round(ratio*100)}% based on your ${fte}-hour contracted week.</p>` : '';
   const ptoNote = (pto+holidays) > 0 ? `<p class="prorata-note">Denominator adjusted: ${pto} PTO hrs + ${holidays} holiday hrs removed from contracted hours.</p>` : '';
 
+  const progActual = Math.min((treatHrs/totalQtrHrs)*100, 100).toFixed(1);
+  const progProj = Math.min(projectedUtil, 100).toFixed(1);
+
   const tierRows = TIERS.map(t => {
-    const hrsNeeded = Math.ceil((t.pct/100)*denom);
-    const isCurrent = tier && t.pct === tier.pct;
+    const hrsNeeded = Math.ceil((t.pct/100)*totalQtrHrs);
+    const isCurrent = projectedTier && t.pct === projectedTier.pct;
     const isNext = nextTier && t.pct === nextTier.pct;
-    const gap = hrsNeeded - treatHrs;
-    const extraPw = gap > 0 ? (gap/wksLeft).toFixed(1)+' hrs/wk' : 'passed';
-    const gapColor = isCurrent ? '#0F6E56' : isNext ? '#185FA5' : gap<=0 ? '#888780' : '#888780';
-    const gapText = isCurrent ? 'current' : extraPw;
+    const gap = hrsNeeded - projectedTreat;
+    const hrsPerDay = gap > 0 ? (gap/(wksLeft*5)).toFixed(1)+' hrs/day' : 'on pace';
+    const gapColor = isCurrent ? '#0F6E56' : isNext ? '#185FA5' : '#888780';
+    const gapText = isCurrent ? 'projected' : hrsPerDay;
     return `<div class="tier-row ${isCurrent?'on':isNext?'nx':''}">
       <span class="t-pct">${t.pct}%</span>
       <span class="t-hrs">${hrsNeeded} hrs</span>
@@ -389,17 +414,37 @@ function renderQuarterly(treatHrs, util, denom, fte, ratio, pto, holidays) {
 
   document.getElementById('panel-q').innerHTML = `
     <div class="metrics">
-      <div class="met"><p class="met-label">Hours treating</p><p class="met-val">${treatHrs.toFixed(1)} hrs</p><p class="met-sub">this quarter</p></div>
-      <div class="met"><p class="met-label">Utilization rate</p><p class="met-val">${Math.round(util)}%</p><p class="met-sub">of ~${Math.round(denom)} hrs so far</p></div>
-      <div class="met"><p class="met-label">Quarterly bonus</p><p class="met-val">${fmt$(qBonus)}</p><p class="met-sub">${fmt$(aBonus)} if sustained</p></div>
+      <div class="met">
+        <p class="met-label">Hours treating</p>
+        <p class="met-val">${treatHrs.toFixed(1)} hrs</p>
+        <p class="met-sub">of ${Math.round(denom)} hrs so far (${currentUtil}%)</p>
+      </div>
+      <div class="met">
+        <p class="met-label">Projected end of quarter</p>
+        <p class="met-val" style="${projValColor}">${projectedUtil.toFixed(0)}%</p>
+        <p class="met-sub" style="${projSubColor}">${projSub}</p>
+      </div>
+      <div class="met">
+        <p class="met-label">Projected bonus</p>
+        <p class="met-val">${fmt$(qBonus)}</p>
+        <p class="met-sub">${fmt$(aBonus)} annually</p>
+      </div>
     </div>
-    <div class="prog"><div class="prog-fill" style="width:${Math.min(util,100).toFixed(1)}%"></div></div>
+    <div style="position:relative;height:7px;background:#d3d1c7;border-radius:99px;margin:0 0 4px;overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;height:100%;border-radius:99px;background:#9FE1CB;width:${progProj}%"></div>
+      <div style="position:absolute;top:0;left:0;height:100%;border-radius:99px;background:#1D9E75;width:${progActual}%"></div>
+    </div>
     <div class="prog-labels"><span>0</span><span>90%</span><span>95%</span><span>100%</span></div>
+    <div style="display:flex;gap:14px;font-size:11px;color:#888780;margin-bottom:12px;align-items:center;">
+      <span><span style="display:inline-block;width:10px;height:7px;border-radius:3px;background:#1D9E75;margin-right:3px;vertical-align:middle;"></span>Treating so far</span>
+      <span><span style="display:inline-block;width:10px;height:7px;border-radius:3px;background:#9FE1CB;margin-right:3px;vertical-align:middle;"></span>Projected by quarter end</span>
+    </div>
     <div class="${calloutClass}"><p class="callout-line1">${line1}</p><p class="callout-line2">${line2}</p></div>
     ${prorataNote}${ptoNote}
     <p class="section-label">All tiers this quarter</p>
     <div class="tier-list">${tierRows}</div>`;
 }
+
 
 function switchTab(t) {
   document.getElementById('panel-w').style.display = t==='w'?'':'none';
