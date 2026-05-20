@@ -199,7 +199,7 @@ function quarterWorkdaysSoFar() {
 }
 
 async function fetchPoints(token, email, key, start, end) {
-  const url = `https://metapulse.com/api/v4/data_points?graph_id=${token}&starts_on_or_after=${start}&ends_on_or_before=${end}&per_page=500`;
+  const url = `https://metapulse-proxy.jon-a3a.workers.dev/api/v4/data_points?graph_id=${token}&starts_on_or_after=${start}&ends_on_or_before=${end}&per_page=500`;
   const res = await fetch(url, { headers: { 'api-email': email, 'api-key': key, 'Accept': 'application/json' }});
   if(!res.ok) throw new Error('API error ' + res.status);
   return res.json();
