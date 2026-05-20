@@ -289,9 +289,9 @@ function renderWeekly(treatHrs, util, denom, fte, ratio, loggedHrs) {
   const projTo97 = Math.max(0, (0.97*denom) - projectedTreat);
   const projTo100 = Math.max(0, denom - projectedTreat);
 
-  let projValColor = noData ? '' : projectedUtil >= 97 ? 'color:#0F6E56' : projectedUtil >= 90 ? 'color:#854F0B' : 'color:#A32D2D';
+  let projValColor = noData ? '' : projectedUtil >= 97 ? 'color:#0F6E56' : projectedUtil >= 90 ? 'color:#185FA5' : 'color:#A32D2D';
   let projSub = noData ? 'No data logged yet' : projectedUtil >= 97 ? 'On track for weekly bonus' : projectedUtil >= 90 ? 'Building toward bonus' : 'Well below threshold';
-  let projSubColor = noData ? '' : projectedUtil >= 97 ? 'color:#0F6E56' : projectedUtil >= 90 ? 'color:#854F0B' : 'color:#A32D2D';
+  let projSubColor = noData ? '' : projectedUtil >= 97 ? 'color:#0F6E56' : projectedUtil >= 90 ? 'color:#185FA5' : 'color:#A32D2D';
 
   let calloutClass, line1, line2;
   if(noData) {
@@ -322,9 +322,9 @@ function renderWeekly(treatHrs, util, denom, fte, ratio, loggedHrs) {
 
   document.getElementById('panel-w').innerHTML = `
     <div class="metrics">
-      <div class="met"><p class="met-label">Hours treating</p><p class="met-val">${noData ? '—' : treatHrs.toFixed(1)+' hrs'}</p><p class="met-sub">this week so far</p></div>
+      <div class="met"><p class="met-label">Hours treating</p><p class="met-val">${noData ? '—' : treatHrs.toFixed(1)+' hrs'}</p><p class="met-sub">${noData ? 'this week so far' : 'of '+loggedHrs.toFixed(1)+' hrs so far'}</p></div>
       <div class="met"><p class="met-label">Projected end of week</p><p class="met-val" style="${projValColor}">${noData ? '—' : projectedUtil.toFixed(0)+'%'}</p><p class="met-sub" style="${projSubColor}">${projSub}</p></div>
-      <div class="met"><p class="met-label">Weekly bonus</p><p class="met-val">${fmt$(wkBonus)}</p><p class="met-sub">${wkBonus>0?'Earned this week':'Need 97%+ to unlock'}</p></div>
+      <div class="met"><p class="met-label">Projected weekly bonus</p><p class="met-val" style="${projectedUtil>=97?'color:#0F6E56':projectedUtil>=90?'color:#185FA5':''}">${noData?'—':fmt$(prorata(100,fte))}</p><p class="met-sub" style="${projectedUtil>=97?'color:#0F6E56':projectedUtil>=90?'color:#185FA5':''}">${noData?'No data yet':projectedUtil>=97?'On pace to earn':'Increase pace to unlock'}</p></div>
     </div>
     <div style="position:relative;height:7px;background:#d3d1c7;border-radius:99px;margin:0 0 4px;overflow:hidden;">
       <div style="position:absolute;top:0;left:0;height:100%;border-radius:99px;background:#9FE1CB;width:${progProj}%"></div>
