@@ -18,8 +18,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .field label { font-size: 12px; color: #5f5e5a; display: block; margin-bottom: 4px; }
 .field select, .field input { width: 100%; height: 36px; border: 0.5px solid #b4b2a9; border-radius: 8px; padding: 0 10px; font-size: 14px; background: #fff; color: #2c2c2a; outline: none; }
 .field select:focus, .field input:focus { border-color: #1D9E75; box-shadow: 0 0 0 3px rgba(29,158,117,0.12); }
-.pto-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-.load-btn { width: 100%; height: 40px; background: #1D9E75; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.load-btn { width: 100%; height: 40px; background: #1D9E75; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; }
 .load-btn:hover { background: #0F6E56; }
 .status { font-size: 12px; color: #888780; text-align: center; margin-top: 8px; min-height: 16px; }
 .tabs { display: flex; gap: 6px; margin-bottom: 16px; }
@@ -30,18 +29,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .met-label { font-size: 11px; color: #888780; margin: 0 0 3px; }
 .met-val { font-size: 20px; font-weight: 500; color: #2c2c2a; }
 .met-sub { font-size: 11px; color: #888780; margin: 2px 0 0; }
-.prog { height: 7px; background: #d3d1c7; border-radius: 99px; margin: 0 0 4px; overflow: hidden; }
-.prog-fill { height: 100%; border-radius: 99px; background: #1D9E75; transition: width 0.4s; }
 .prog-labels { display: flex; justify-content: space-between; font-size: 10px; color: #888780; margin-bottom: 12px; }
-.callout { border-left: 3px solid #1D9E75; padding: 10px 14px; background: #E1F5EE; border-radius: 0; margin-bottom: 12px; }
+.callout { border-left: 3px solid #1D9E75; padding: 10px 14px; background: #E1F5EE; margin-bottom: 12px; }
 .callout.info { border-color: #378ADD; background: #E6F1FB; }
-.callout.warn { border-color: #BA7517; background: #FAEEDA; }
 .callout-line1 { font-size: 14px; font-weight: 500; color: #085041; margin: 0 0 4px; }
 .callout.info .callout-line1 { color: #0C447C; }
-.callout.warn .callout-line1 { color: #633806; }
 .callout-line2 { font-size: 12px; color: #0F6E56; margin: 0; }
 .callout.info .callout-line2 { color: #185FA5; }
-.callout.warn .callout-line2 { color: #854F0B; }
 .section-label { font-size: 11px; color: #888780; margin-bottom: 6px; }
 .tier-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
 .tier-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; background: #f5f4f0; font-size: 12px; color: #2c2c2a; }
@@ -100,16 +94,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <input type="password" id="api-key-input" placeholder="Paste from your profile" oninput="saveKey()">
       </div>
     </div>
-    <div class="pto-row">
-      <div class="field">
-        <label>Approved PTO this quarter (hrs)</label>
-        <input type="number" id="pto-input" value="0" min="0" max="200" placeholder="0">
-      </div>
-      <div class="field">
-        <label>Company holidays this quarter (hrs)</label>
-        <input type="number" id="holiday-input" value="0" min="0" max="80" placeholder="0">
-      </div>
-    </div>
     <button class="load-btn" onclick="loadData()">Load my data</button>
     <p class="status" id="load-status"></p>
   </div>
@@ -119,7 +103,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <button class="tab on" id="tab-w" onclick="switchTab('w')">Weekly</button>
       <button class="tab" id="tab-q" onclick="switchTab('q')">Quarterly</button>
     </div>
-
     <div id="panel-w"></div>
     <div id="panel-q" style="display:none;"></div>
   </div>
@@ -179,7 +162,27 @@ function getQuarterRange() {
   const q = Math.floor(now.getMonth()/3);
   const start = new Date(now.getFullYear(), q*3, 1);
   const end = new Date(now.getFullYear(), q*3+3, 0);
-  return { start: fmtDate(start), end: fmtDate(end), endDate: end };
+  return { start: fmtDate(start), end: fmtDate(end) };
+}
+
+function getQuarterFutureRange() {
+  // From tomorrow through quarter end — for projecting remaining available hours
+  const now = new Date();
+  const q = Math.floor(now.getMonth()/3);
+  const tomorrow = new Date(now); tomorrow.setDate(now.getDate()+1);
+  const end = new Date(now.getFullYear(), q*3+3, 0);
+  return { start: fmtDate(tomorrow), end: fmtDate(end) };
+}
+
+function getQuarterToDateRange() {
+  // From quarter start through TODAY (not quarter end) — MetaPulse's hrs graph
+  // already has the full quarter's available hours populated in advance, so
+  // querying the full quarter range here would pull in future days too and
+  // inflate the "available so far" denominator.
+  const now = new Date();
+  const q = Math.floor(now.getMonth()/3);
+  const start = new Date(now.getFullYear(), q*3, 1);
+  return { start: fmtDate(start), end: fmtDate(now) };
 }
 
 function weeksRemaining() {
@@ -187,15 +190,6 @@ function weeksRemaining() {
   const q = Math.floor(now.getMonth()/3);
   const qEnd = new Date(now.getFullYear(), q*3+3, 0);
   return Math.max(1, Math.ceil((qEnd - now) / (1000*60*60*24*7)));
-}
-
-function quarterWorkdaysSoFar() {
-  const now = new Date();
-  const q = Math.floor(now.getMonth()/3);
-  const qStart = new Date(now.getFullYear(), q*3, 1);
-  let days = 0, d = new Date(qStart);
-  while(d <= now) { const wd = d.getDay(); if(wd>=1&&wd<=5) days++; d.setDate(d.getDate()+1); }
-  return days;
 }
 
 async function fetchPoints(token, email, key, start, end) {
@@ -223,8 +217,6 @@ function onTherapistChange() {
 async function loadData() {
   const who = document.getElementById('therapist-select').value;
   const key = document.getElementById('api-key-input').value.trim();
-  const pto = parseFloat(document.getElementById('pto-input').value)||0;
-  const holidays = parseFloat(document.getElementById('holiday-input').value)||0;
   const status = document.getElementById('load-status');
 
   if(!who || !key) { status.textContent = 'Please select your name and enter your API key.'; return; }
@@ -236,33 +228,29 @@ async function loadData() {
 
   try {
     const wRange = getWeekRange();
-    const qRange = getQuarterRange();
+    const qToDateRange = getQuarterToDateRange();
+    const qFutureRange = getQuarterFutureRange();
 
-    const [wTreatPts, qTreatPts, wHrsPts, qHrsPts] = await Promise.all([
+    // Fetch: weekly treat, weekly hrs available, quarterly treat so far, quarterly hrs available so far, future hrs available
+    const [wTreatPts, wHrsPts, qTreatPts, qHrsPts, qFutureHrsPts] = await Promise.all([
       fetchPoints(person.treat, person.email, key, wRange.start, wRange.end),
-      fetchPoints(person.treat, person.email, key, qRange.start, qRange.end),
       fetchPoints(person.hrs,   person.email, key, wRange.start, wRange.end),
-      fetchPoints(person.hrs,   person.email, key, qRange.start, qRange.end),
+      fetchPoints(person.treat, person.email, key, qToDateRange.start, qToDateRange.end),
+      fetchPoints(person.hrs,   person.email, key, qToDateRange.start, qToDateRange.end),
+      fetchPoints(person.hrs,   person.email, key, qFutureRange.start, qFutureRange.end),
     ]);
 
-    const wTreatHrs = sumPoints(wTreatPts);
-    const qTreatHrs = sumPoints(qTreatPts);
+    const wTreatHrs  = sumPoints(wTreatPts);
+    const wAvailHrs  = sumPoints(wHrsPts);   // hours available this week per MetaPulse
+    const qTreatHrs  = sumPoints(qTreatPts);
+    const qAvailHrs  = sumPoints(qHrsPts);   // hours available so far this quarter per MetaPulse (PTO already excluded)
+    const qFutureAvailHrs = sumPoints(qFutureHrsPts); // hours available remaining in quarter per MetaPulse
 
     const fte = person.fte;
     const ratio = fte / 40;
 
-    // Weekly: cap denominator at FTE
-    const wDenom = fte;
-    const wUtil = Math.min((wTreatHrs / wDenom) * 100, 100);
-
-    // Quarterly: workdays so far × daily FTE hrs, minus PTO and holidays, capped
-    const workdaysSoFar = quarterWorkdaysSoFar();
-    const qFTEsoFar = workdaysSoFar * (fte / 5);
-    const qDenom = Math.max(qFTEsoFar - pto - holidays, 1);
-    const qUtil = Math.min((qTreatHrs / qDenom) * 100, 100);
-
-    renderWeekly(wTreatHrs, wUtil, wDenom, fte, ratio, sumPoints(wHrsPts));
-    renderQuarterly(qTreatHrs, qUtil, qDenom, fte, ratio, pto, holidays);
+    renderWeekly(wTreatHrs, wAvailHrs, fte, ratio);
+    renderQuarterly(qTreatHrs, qAvailHrs, qFutureAvailHrs, fte, ratio);
 
     status.textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
     document.getElementById('results').style.display = '';
@@ -274,20 +262,24 @@ async function loadData() {
   }
 }
 
-function renderWeekly(treatHrs, util, denom, fte, ratio, loggedHrs) {
-  const wkBonus = util >= 100 ? prorata(200,fte) : util >= 97 ? prorata(100,fte) : 0;
-  const noData = !loggedHrs || loggedHrs === 0;
-  const pace = loggedHrs > 0 ? treatHrs / loggedHrs : 0;
-  const remainingFTE = Math.max(denom - loggedHrs, 0);
-  const projectedTreat = loggedHrs > 0 ? treatHrs + pace * remainingFTE : 0;
-  const projectedUtil = loggedHrs > 0 ? Math.min((projectedTreat / denom) * 100, 100) : 0;
+function renderWeekly(treatHrs, availHrs, fte, ratio) {
+  // Use MetaPulse hours available as denominator; fall back to FTE if not yet populated
+  const denom = availHrs > 0 ? availHrs : fte;
+  const noData = treatHrs === 0 && availHrs === 0;
+
+  const util = availHrs > 0 ? Math.min((treatHrs / availHrs) * 100, 100) : 0;
+
+  // Pace = treating / available so far; project remaining available hrs at same rate
+  const remainingAvail = Math.max(denom - availHrs, 0); // 0 for weekly (full week fetched)
+  // For weekly, denom IS the full week avail, so projection is just current util
+  const projectedUtil = noData ? 0 : Math.min(util, 100);
 
   const now = new Date();
   const dayOfWeek = now.getDay();
   const daysLeft = Math.max(1, dayOfWeek === 0 ? 1 : 6 - dayOfWeek);
 
-  const projTo97 = Math.max(0, (0.97*denom) - projectedTreat);
-  const projTo100 = Math.max(0, denom - projectedTreat);
+  const projTo97  = Math.max(0, 0.97*denom - treatHrs);
+  const projTo100 = Math.max(0, denom - treatHrs);
 
   let projValColor = noData ? '' : projectedUtil >= 97 ? 'color:#0F6E56' : projectedUtil >= 90 ? 'color:#185FA5' : 'color:#A32D2D';
   let projSub = noData ? 'No data logged yet' : projectedUtil >= 97 ? 'On track for weekly bonus' : projectedUtil >= 90 ? 'Building toward bonus' : 'Well below threshold';
@@ -300,42 +292,36 @@ function renderWeekly(treatHrs, util, denom, fte, ratio, loggedHrs) {
     line2 = 'Check back after your first day is logged in MetaPulse';
   } else if(projectedUtil >= 100) {
     calloutClass = 'callout';
-    line1 = 'On pace for 100% by end of week';
+    line1 = 'On pace for 100% this week';
     line2 = 'Weekly bonus: ' + fmt$(prorata(200,fte)) + ' — keep up the pace';
   } else if(projectedUtil >= 97) {
     calloutClass = 'callout';
-    line1 = 'On pace for ' + projectedUtil.toFixed(0) + '% by end of week';
+    line1 = 'On pace for ' + projectedUtil.toFixed(0) + '% this week';
     line2 = fmt$(prorata(100,fte)) + ' weekly bonus within reach — maintain your current pace';
   } else {
-    const hrsPerDay = (projTo97 / daysLeft).toFixed(1);
+    const hrsPerDay = daysLeft > 0 ? (projTo97 / daysLeft).toFixed(1) : projTo97.toFixed(1);
     calloutClass = 'callout info';
-    line1 = 'Increase treating by ' + hrsPerDay + ' hrs/day on average over the next ' + daysLeft + ' days to reach 97%';
+    line1 = 'Need ' + hrsPerDay + ' more treating hrs/day over the next ' + daysLeft + ' day(s) to reach 97%';
     line2 = 'Reaching 97% unlocks the ' + fmt$(prorata(100,fte)) + ' weekly bonus';
   }
 
   const prorataNote = fte < 40 ? `<p class="prorata-note">Bonuses prorated at ${Math.round(ratio*100)}% based on your ${fte}-hour contracted week.</p>` : '';
   const progActual = noData ? 0 : Math.min((treatHrs/denom)*100, 100).toFixed(1);
-  const progProj = noData ? 0 : Math.min(projectedUtil, 100).toFixed(1);
-  const tier97Gap = noData ? '—' : projTo97 > 0 ? '+'+projTo97.toFixed(1)+' proj hrs' : 'on track';
-  const tier100Gap = noData ? '—' : projTo100 > 0 ? '+'+projTo100.toFixed(1)+' proj hrs' : 'on track';
-  const tier97Cls = !noData && projectedUtil >= 97 && projectedUtil < 100 ? 'on' : !noData && projTo97 > 0 ? 'nx' : '';
+  const tier97Cls  = !noData && projectedUtil >= 97 && projectedUtil < 100 ? 'on' : !noData && projTo97 > 0 ? 'nx' : '';
   const tier100Cls = !noData && projectedUtil >= 100 ? 'on' : !noData && projTo97 <= 0 && projTo100 > 0 ? 'nx' : '';
+  const tier97Gap  = noData ? '—' : projTo97 > 0 ? '+'+projTo97.toFixed(1)+' hrs needed' : 'on track';
+  const tier100Gap = noData ? '—' : projTo100 > 0 ? '+'+projTo100.toFixed(1)+' hrs needed' : 'on track';
 
   document.getElementById('panel-w').innerHTML = `
     <div class="metrics">
-      <div class="met"><p class="met-label">Hours treating</p><p class="met-val">${noData ? '—' : treatHrs.toFixed(1)+' hrs'}</p><p class="met-sub">${noData ? 'this week so far' : 'of '+loggedHrs.toFixed(1)+' hrs so far'}</p></div>
-      <div class="met"><p class="met-label">Projected end of week</p><p class="met-val" style="${projValColor}">${noData ? '—' : projectedUtil.toFixed(0)+'%'}</p><p class="met-sub" style="${projSubColor}">${projSub}</p></div>
-      <div class="met"><p class="met-label">Projected weekly bonus</p><p class="met-val" style="${projectedUtil>=97?'color:#0F6E56':projectedUtil>=90?'color:#185FA5':''}">${noData?'—':projectedUtil>=100?fmt$(prorata(200,fte)):projectedUtil>=97?fmt$(prorata(100,fte)):fmt$(0)}</p><p class="met-sub" style="${projectedUtil>=97?'color:#0F6E56':projectedUtil>=90?'color:#185FA5':''}">${noData?'No data yet':projectedUtil>=97?'On pace to earn':'Increase pace to unlock'}</p></div>
+      <div class="met"><p class="met-label">Hours treating</p><p class="met-val">${noData ? '—' : treatHrs.toFixed(1)+' hrs'}</p><p class="met-sub">${noData ? 'this week so far' : 'of '+denom.toFixed(1)+' hrs available'}</p></div>
+      <div class="met"><p class="met-label">Utilization this week</p><p class="met-val" style="${projValColor}">${noData ? '—' : projectedUtil.toFixed(0)+'%'}</p><p class="met-sub" style="${projSubColor}">${projSub}</p></div>
+      <div class="met"><p class="met-label">Weekly bonus</p><p class="met-val" style="${projectedUtil>=97?'color:#0F6E56':''}">${noData?'—':projectedUtil>=100?fmt$(prorata(200,fte)):projectedUtil>=97?fmt$(prorata(100,fte)):fmt$(0)}</p><p class="met-sub" style="${projectedUtil>=97?'color:#0F6E56':''}">${noData?'No data yet':projectedUtil>=97?'Earned this week':'Increase pace to unlock'}</p></div>
     </div>
     <div style="position:relative;height:7px;background:#d3d1c7;border-radius:99px;margin:0 0 4px;overflow:hidden;">
-      <div style="position:absolute;top:0;left:0;height:100%;border-radius:99px;background:#9FE1CB;width:${progProj}%"></div>
       <div style="position:absolute;top:0;left:0;height:100%;border-radius:99px;background:#1D9E75;width:${progActual}%"></div>
     </div>
-    <div class="prog-labels"><span>0</span><span>90% = ${(0.9*denom).toFixed(1)} hrs</span><span>97% = ${(0.97*denom).toFixed(1)} hrs</span><span>${denom} hrs</span></div>
-    <div style="display:flex;gap:14px;font-size:11px;color:#888780;margin-bottom:12px;align-items:center;">
-      <span><span style="display:inline-block;width:10px;height:7px;border-radius:3px;background:#1D9E75;margin-right:3px;vertical-align:middle;"></span>Treating so far</span>
-      <span><span style="display:inline-block;width:10px;height:7px;border-radius:3px;background:#9FE1CB;margin-right:3px;vertical-align:middle;"></span>Projected by Friday</span>
-    </div>
+    <div class="prog-labels"><span>0</span><span>90% = ${(0.9*denom).toFixed(1)} hrs</span><span>97% = ${(0.97*denom).toFixed(1)} hrs</span><span>${denom.toFixed(1)} hrs</span></div>
     <div class="${calloutClass}"><p class="callout-line1">${line1}</p><p class="callout-line2">${line2}</p></div>
     ${prorataNote}
     <p class="section-label">Weekly bonus tiers</p>
@@ -346,26 +332,21 @@ function renderWeekly(treatHrs, util, denom, fte, ratio, loggedHrs) {
     </div>`;
 }
 
-
-function renderQuarterly(treatHrs, util, denom, fte, ratio, pto, holidays) {
+function renderQuarterly(treatHrs, qAvailHrs, qFutureAvailHrs, fte, ratio) {
   const wksLeft = weeksRemaining();
-  const qFTEtotal = (() => {
-    const now = new Date();
-    const q = Math.floor(now.getMonth()/3);
-    const qStart = new Date(now.getFullYear(), q*3, 1);
-    const qEnd = new Date(now.getFullYear(), q*3+3, 0);
-    let days = 0, d = new Date(qStart);
-    while(d <= qEnd) { const wd = d.getDay(); if(wd>=1&&wd<=5) days++; d.setDate(d.getDate()+1); }
-    return days * (fte/5);
-  })();
-  const totalQtrHrs = Math.max(qFTEtotal - pto - holidays, 1);
 
-  const pace = denom > 0 ? treatHrs / denom : 0;
-  const remainingQtrHrs = Math.max(totalQtrHrs - denom, 0);
-  const projectedTreat = treatHrs + pace * remainingQtrHrs;
-  const projectedUtil = Math.min((projectedTreat / totalQtrHrs) * 100, 100);
-  const currentUtil = denom > 0 ? Math.round((treatHrs / denom) * 100) : 0;
-  const nextTier = TIERS.find(t => t.pct > Math.round(projectedUtil));
+  // Total available hours for the quarter = elapsed available + future available (both from MetaPulse)
+  const totalQtrHrs = Math.max(qAvailHrs + qFutureAvailHrs, 1);
+
+  // Current utilization = treating so far / available so far
+  const currentUtil = qAvailHrs > 0 ? Math.round((treatHrs / qAvailHrs) * 100) : 0;
+
+  // Pace = treating / available so far; project into remaining available hours
+  const pace = qAvailHrs > 0 ? treatHrs / qAvailHrs : 0;
+  const projectedTreat = treatHrs + pace * qFutureAvailHrs;
+  const projectedUtil  = Math.min((projectedTreat / totalQtrHrs) * 100, 100);
+
+  const nextTier      = TIERS.find(t => t.pct > Math.round(projectedUtil));
   const projectedTier = getTier(Math.round(projectedUtil));
   const qBonus = projectedTier ? prorata(projectedTier.q, fte) : 0;
   const aBonus = projectedTier ? prorata(projectedTier.a, fte) : 0;
@@ -384,27 +365,26 @@ function renderQuarterly(treatHrs, util, denom, fte, ratio, pto, holidays) {
     line1 = 'On pace for ' + projectedUtil.toFixed(0) + '% by end of quarter';
     line2 = 'Projected quarterly bonus: ' + fmt$(qBonus);
   } else {
-    const hrsNeeded = Math.max(0, (nextTier.pct/100)*totalQtrHrs - projectedTreat);
-    const hrsPerDay = (hrsNeeded / (wksLeft * 5)).toFixed(1);
+    const hrsNeeded  = Math.max(0, (nextTier.pct/100)*totalQtrHrs - projectedTreat);
+    const hrsPerDay  = (hrsNeeded / (wksLeft * 5)).toFixed(1);
     calloutClass = 'callout info';
-    line1 = 'Increase treating by ' + hrsPerDay + ' hrs/day on average over the next ' + wksLeft + ' weeks to reach ' + nextTier.pct + '%';
+    line1 = 'Increase treating by ' + hrsPerDay + ' hrs/day over the next ' + wksLeft + ' weeks to reach ' + nextTier.pct + '%';
     line2 = 'Quarterly bonus at ' + nextTier.pct + '%: ' + fmt$(prorata(nextTier.q,fte));
   }
 
   const prorataNote = fte < 40 ? `<p class="prorata-note">Bonuses prorated at ${Math.round(ratio*100)}% based on your ${fte}-hour contracted week.</p>` : '';
-  const ptoNote = (pto+holidays) > 0 ? `<p class="prorata-note">Denominator adjusted: ${pto} PTO hrs + ${holidays} holiday hrs removed from contracted hours.</p>` : '';
 
   const progActual = Math.min((treatHrs/totalQtrHrs)*100, 100).toFixed(1);
-  const progProj = Math.min(projectedUtil, 100).toFixed(1);
+  const progProj   = Math.min(projectedUtil, 100).toFixed(1);
 
   const tierRows = TIERS.map(t => {
-    const hrsNeeded = Math.ceil((t.pct/100)*totalQtrHrs);
-    const isCurrent = projectedTier && t.pct === projectedTier.pct;
-    const isNext = nextTier && t.pct === nextTier.pct;
-    const gap = hrsNeeded - projectedTreat;
-    const hrsPerDay = gap > 0 ? (gap/(wksLeft*5)).toFixed(1)+' hrs/day' : 'on pace';
-    const gapColor = isCurrent ? '#0F6E56' : isNext ? '#185FA5' : '#888780';
-    const gapText = isCurrent ? 'projected' : hrsPerDay;
+    const hrsNeeded  = Math.ceil((t.pct/100)*totalQtrHrs);
+    const isCurrent  = projectedTier && t.pct === projectedTier.pct;
+    const isNext     = nextTier && t.pct === nextTier.pct;
+    const gap        = hrsNeeded - projectedTreat;
+    const hrsPerDay  = gap > 0 ? (gap/(wksLeft*5)).toFixed(1)+' hrs/day' : 'on pace';
+    const gapColor   = isCurrent ? '#0F6E56' : isNext ? '#185FA5' : '#888780';
+    const gapText    = isCurrent ? 'projected' : hrsPerDay;
     return `<div class="tier-row ${isCurrent?'on':isNext?'nx':''}">
       <span class="t-pct">${t.pct}%</span>
       <span class="t-hrs">${hrsNeeded} hrs</span>
@@ -418,7 +398,7 @@ function renderQuarterly(treatHrs, util, denom, fte, ratio, pto, holidays) {
       <div class="met">
         <p class="met-label">Hours treating</p>
         <p class="met-val">${treatHrs.toFixed(1)} hrs</p>
-        <p class="met-sub">of ${Math.round(denom)} hrs so far (${currentUtil}%)</p>
+        <p class="met-sub">of ${qAvailHrs.toFixed(1)} available so far (${currentUtil}%)</p>
       </div>
       <div class="met">
         <p class="met-label">Projected end of quarter</p>
@@ -435,17 +415,16 @@ function renderQuarterly(treatHrs, util, denom, fte, ratio, pto, holidays) {
       <div style="position:absolute;top:0;left:0;height:100%;border-radius:99px;background:#9FE1CB;width:${progProj}%"></div>
       <div style="position:absolute;top:0;left:0;height:100%;border-radius:99px;background:#1D9E75;width:${progActual}%"></div>
     </div>
-    <div class="prog-labels"><span>0</span><span>90%</span><span>95%</span><span>100%</span></div>
+    <div class="prog-labels"><span>0</span><span>90%</span><span>95%</span><span>100% = ${totalQtrHrs.toFixed(0)} hrs</span></div>
     <div style="display:flex;gap:14px;font-size:11px;color:#888780;margin-bottom:12px;align-items:center;">
       <span><span style="display:inline-block;width:10px;height:7px;border-radius:3px;background:#1D9E75;margin-right:3px;vertical-align:middle;"></span>Treating so far</span>
       <span><span style="display:inline-block;width:10px;height:7px;border-radius:3px;background:#9FE1CB;margin-right:3px;vertical-align:middle;"></span>Projected by quarter end</span>
     </div>
     <div class="${calloutClass}"><p class="callout-line1">${line1}</p><p class="callout-line2">${line2}</p></div>
-    ${prorataNote}${ptoNote}
+    ${prorataNote}
     <p class="section-label">All tiers this quarter</p>
     <div class="tier-list">${tierRows}</div>`;
 }
-
 
 function switchTab(t) {
   document.getElementById('panel-w').style.display = t==='w'?'':'none';
